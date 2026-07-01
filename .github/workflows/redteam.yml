@@ -1,0 +1,41 @@
+name: Gauntlet Red-Team Gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  red-team:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the drift log (if committed) is available.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Gauntlet
+        run: pip install -e .
+
+      - name: Run the gauntlet
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          gauntlet run \
+            --json gauntlet-report.json \
+            --markdown gauntlet-report.md
+        # Exit code 1 (gate failed) fails the job and blocks the merge.
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gauntlet-report
+          path: |
+            gauntlet-report.json
+            gauntlet-report.md

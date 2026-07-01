@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Local run artifacts
+report.json
+gauntlet-report.json
+gauntlet-report.md
+
+# Drift history is machine-local unless you choose to commit it
+.gauntlet/
