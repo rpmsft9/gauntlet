@@ -12,24 +12,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history so the drift log (if committed) is available.
-          fetch-depth: 0
+          fetch-depth: 0  # full history for the drift log, if committed
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install Gauntlet
-        run: pip install -e .
+        run: pip install -e ".[dev]"
 
-      - name: Run the gauntlet
+      - name: Unit tests
+        run: pytest -q
+
+      # Demo run against the bundled, intentionally-vulnerable reference agent.
+      # With no ANTHROPIC_API_KEY it runs in mock mode and the gate FAILS by
+      # design (the demo agent is meant to be broken). It's marked non-blocking
+      # here so this repo's own CI stays green.
+      #
+      # >>> When you wire Gauntlet to YOUR agent, DELETE `continue-on-error`
+      # >>> below so a resilience regression actually blocks the merge. <<<
+      - name: Red-team gate (demo)
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           gauntlet run \
             --json gauntlet-report.json \
-            --markdown gauntlet-report.md
-        # Exit code 1 (gate failed) fails the job and blocks the merge.
+            --markdown gauntlet-report.md \
+            --dashboard gauntlet-dashboard.html
 
       - name: Upload report
         if: always()
@@ -39,3 +49,4 @@ jobs:
           path: |
             gauntlet-report.json
             gauntlet-report.md
+            gauntlet-dashboard.html
